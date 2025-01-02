@@ -438,7 +438,7 @@ class DataProto:
     def debug_info(self):
         return (
             f'DataProto('
-            f'batch={ {k: v.shape for k, v in self.batch.items()} }, '
+            f'batch={ {k: v.shape for k, v in self.batch.items()} if self.batch is not None else None}, '
             f'non_tensor_batch.keys={list(self.non_tensor_batch.keys())}, '
             f'meta_info={self.meta_info}'
             f')'
