@@ -30,7 +30,7 @@ from verl.single_controller.base.decorator import register, Dispatch
 from verl.utils import hf_tokenizer
 from verl.utils.debug import log_gpu_memory_usage
 from verl.utils.fs import copy_local_path_from_hdfs
-from verl.utils.fsdp_utils import get_fsdp_wrap_policy, offload_fsdp_grad, init_fn, get_init_weight_context_manager
+from verl.utils.fsdp_utils import get_fsdp_wrap_policy, offload_fsdp_grad, get_init_weight_context_manager
 from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and_grad, load_fsdp_optimizer, \
     load_fsdp_param_and_grad
 from verl.utils.import_utils import import_external_libs
@@ -178,16 +178,19 @@ class ActorRolloutRefWorker(Worker):
             sharding_strategy = ShardingStrategy.FULL_SHARD
 
         # TODO: add transformer policy
-        actor_module_fsdp = FSDP(
-            actor_module,
-            param_init_fn=init_fn,
-            use_orig_params=False,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=torch.cuda.current_device(),
-            sharding_strategy=sharding_strategy,  # zero3
-            mixed_precision=mixed_precision,
-            sync_module_states=True,
-            device_mesh=self.device_mesh)
+        # actor_module_fsdp = FSDP(
+        #     actor_module,
+        #     param_init_fn=init_fn,
+        #     use_orig_params=False,
+        #     auto_wrap_policy=auto_wrap_policy,
+        #     device_id=torch.cuda.current_device(),
+        #     sharding_strategy=sharding_strategy,  # zero3
+        #     mixed_precision=mixed_precision,
+        #     sync_module_states=True,
+        #     device_mesh=self.device_mesh)
+        print('HACK!!! disable fsdp')
+        actor_module_fsdp = actor_module
+        actor_module_fsdp.to('cuda')
 
         print('HACK!!! torch.compile')
         actor_module_fsdp = torch.compile(actor_module_fsdp)
@@ -270,7 +273,9 @@ class ActorRolloutRefWorker(Worker):
                 trust_remote_code=self.config.model.get('trust_remote_code', False))
 
             # get the original unwrapped module
-            self.actor_module = self.actor_module_fsdp._fsdp_wrapped_module
+            print('HACK!!! self.actor_module')
+            # self.actor_module = self.actor_module_fsdp._fsdp_wrapped_module
+            self.actor_module = self.actor_module_fsdp
 
             if self._is_offload_param:
                 # param is require during state_dict in sharding manager
@@ -407,6 +412,9 @@ class ActorRolloutRefWorker(Worker):
 
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
     def save_checkpoint(self, local_path, hdfs_path=None):
+        print('HACK!!! disable save_checkpoint')
+        return
+
         assert self._is_actor
         import torch
         if self._is_offload_param:
@@ -456,7 +464,7 @@ class CriticWorker(Worker):
         # the following line is necessary
         from verl.utils.model import LambdaLayer, print_model_size, squeeze
         from verl.utils.torch_dtypes import PrecisionType
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, MixedPrecision
+        from torch.distributed.fsdp import MixedPrecision
         from torch import optim
 
         local_path = copy_local_path_from_hdfs(config.model.path)
@@ -523,14 +531,16 @@ class CriticWorker(Worker):
 
         log_gpu_memory_usage('Before critic FSDP', logger=None)
 
-        critic_module = FSDP(critic_module,
-                             param_init_fn=init_fn,
-                             use_orig_params=False,
-                             auto_wrap_policy=auto_wrap_policy,
-                             device_id=torch.cuda.current_device(),
-                             sharding_strategy=ShardingStrategy.FULL_SHARD,
-                             mixed_precision=mixed_precision,
-                             sync_module_states=True)
+        # critic_module = FSDP(critic_module,
+        #                      param_init_fn=init_fn,
+        #                      use_orig_params=False,
+        #                      auto_wrap_policy=auto_wrap_policy,
+        #                      device_id=torch.cuda.current_device(),
+        #                      sharding_strategy=ShardingStrategy.FULL_SHARD,
+        #                      mixed_precision=mixed_precision,
+        #                      sync_module_states=True)
+        print('HACK!!! disable fsdp')
+        critic_module.to('cuda')
 
         print('HACK!!! torch.compile')
         critic_module = torch.compile(critic_module)
@@ -661,7 +671,6 @@ class RewardModelWorker(Worker):
     def _build_model(self, config):
         # the following line is necessary
         from transformers import AutoModelForSequenceClassification, AutoConfig
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, CPUOffload
 
         # download the checkpoint from hdfs
         local_path = copy_local_path_from_hdfs(config.model.path)
@@ -689,15 +698,17 @@ class RewardModelWorker(Worker):
             reward_module.to(torch.bfloat16)
         auto_wrap_policy = get_fsdp_wrap_policy(module=reward_module, config=self.config.model.fsdp_config)
 
-        reward_module = FSDP(
-            reward_module,
-            param_init_fn=init_fn,
-            use_orig_params=False,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=torch.cuda.current_device(),
-            sharding_strategy=ShardingStrategy.FULL_SHARD,  # zero3
-            sync_module_states=True,
-            cpu_offload=CPUOffload(offload_params=self.config.model.fsdp_config.param_offload))
+        # reward_module = FSDP(
+        #     reward_module,
+        #     param_init_fn=init_fn,
+        #     use_orig_params=False,
+        #     auto_wrap_policy=auto_wrap_policy,
+        #     device_id=torch.cuda.current_device(),
+        #     sharding_strategy=ShardingStrategy.FULL_SHARD,  # zero3
+        #     sync_module_states=True,
+        #     cpu_offload=CPUOffload(offload_params=self.config.model.fsdp_config.param_offload))
+        print('HACK!!! disable fsdp')
+        reward_module.to('cuda')
 
         print('HACK!!! torch.compile')
         reward_module = torch.compile(reward_module)
