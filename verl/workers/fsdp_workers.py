@@ -179,16 +179,18 @@ class ActorRolloutRefWorker(Worker):
             sharding_strategy = ShardingStrategy.FULL_SHARD
 
         # TODO: add transformer policy
-        actor_module_fsdp = FSDP(
-            actor_module,
-            param_init_fn=init_fn,
-            use_orig_params=False,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=torch.cuda.current_device(),
-            sharding_strategy=sharding_strategy,  # zero3
-            mixed_precision=mixed_precision,
-            sync_module_states=True,
-            device_mesh=self.device_mesh)
+        # actor_module_fsdp = FSDP(
+        #     actor_module,
+        #     param_init_fn=init_fn,
+        #     use_orig_params=False,
+        #     auto_wrap_policy=auto_wrap_policy,
+        #     device_id=torch.cuda.current_device(),
+        #     sharding_strategy=sharding_strategy,  # zero3
+        #     mixed_precision=mixed_precision,
+        #     sync_module_states=True,
+        #     device_mesh=self.device_mesh)
+        print('HACK!!! actor_module disable fsdp')
+        actor_module_fsdp = actor_module
 
         log_gpu_memory_usage('After Actor FSDP init', logger=logger)
 
@@ -522,14 +524,15 @@ class CriticWorker(Worker):
 
         log_gpu_memory_usage('Before critic FSDP', logger=None)
 
-        critic_module = FSDP(critic_module,
-                             param_init_fn=init_fn,
-                             use_orig_params=False,
-                             auto_wrap_policy=auto_wrap_policy,
-                             device_id=torch.cuda.current_device(),
-                             sharding_strategy=ShardingStrategy.FULL_SHARD,
-                             mixed_precision=mixed_precision,
-                             sync_module_states=True)
+        print('HACK!!! critic_module disable fsdp')
+        # critic_module = FSDP(critic_module,
+        #                      param_init_fn=init_fn,
+        #                      use_orig_params=False,
+        #                      auto_wrap_policy=auto_wrap_policy,
+        #                      device_id=torch.cuda.current_device(),
+        #                      sharding_strategy=ShardingStrategy.FULL_SHARD,
+        #                      mixed_precision=mixed_precision,
+        #                      sync_module_states=True)
 
         log_gpu_memory_usage('After critic FSDP', logger=None)
 
@@ -685,15 +688,16 @@ class RewardModelWorker(Worker):
             reward_module.to(torch.bfloat16)
         auto_wrap_policy = get_fsdp_wrap_policy(module=reward_module, config=self.config.model.fsdp_config)
 
-        reward_module = FSDP(
-            reward_module,
-            param_init_fn=init_fn,
-            use_orig_params=False,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=torch.cuda.current_device(),
-            sharding_strategy=ShardingStrategy.FULL_SHARD,  # zero3
-            sync_module_states=True,
-            cpu_offload=CPUOffload(offload_params=self.config.model.fsdp_config.param_offload))
+        print('HACK!!! reward_module disable fsdp')
+        # reward_module = FSDP(
+        #     reward_module,
+        #     param_init_fn=init_fn,
+        #     use_orig_params=False,
+        #     auto_wrap_policy=auto_wrap_policy,
+        #     device_id=torch.cuda.current_device(),
+        #     sharding_strategy=ShardingStrategy.FULL_SHARD,  # zero3
+        #     sync_module_states=True,
+        #     cpu_offload=CPUOffload(offload_params=self.config.model.fsdp_config.param_offload))
 
         return reward_module
 
