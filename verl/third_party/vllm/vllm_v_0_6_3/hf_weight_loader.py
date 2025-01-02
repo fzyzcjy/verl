@@ -26,6 +26,12 @@ def update_hf_weight_loader():
 
 def load_hf_weights(actor_weights: Dict, vllm_model: nn.Module):
     assert isinstance(actor_weights, Dict)
+
+    if '_orig_mod' in actor_weights:
+        print('HACK!!! load_hf_weights')
+        assert len(actor_weights) == 1
+        actor_weights = actor_weights['_orig_mod']
+    
     with set_default_torch_dtype(next(vllm_model.parameters()).dtype):  # TODO
         if vllm_model.config.tie_word_embeddings and "lm_head.weight" in actor_weights.keys():
             del actor_weights["lm_head.weight"]
