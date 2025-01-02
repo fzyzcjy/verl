@@ -24,20 +24,21 @@ When working with Megatron:
 - Do inference in tp. pp is treated as additional dp
 - After inference, all the parameters that doesn't belong to this pp rank is freed.
 """
-from typing import List
 from contextlib import contextmanager
-from omegaconf import DictConfig
+from typing import List
+
 import torch
 import torch.distributed
+from omegaconf import DictConfig
 from tensordict import TensorDict
 from torch import nn
-
 from verl import DataProto
-from verl.utils.torch_functional import get_eos_mask, pad_sequence_to_length
-from verl.workers.rollout.base import BaseRollout
 from verl.third_party.vllm import LLM, vllm_version
 from verl.third_party.vllm import parallel_state as vllm_ps
+from verl.utils.torch_functional import get_eos_mask, pad_sequence_to_length
+from verl.workers.rollout.base import BaseRollout
 from vllm import SamplingParams
+
 
 # TODO
 # 1. support pp in vllm
@@ -179,6 +180,7 @@ class vLLMRollout(BaseRollout):
 
         response = output[0].to(idx.device)  # (bs, response_length)
         log_probs = output[1].to(idx.device)  # (bs, response_length)
+        print(f'hi vllm_rollout raw {response[0].tolist()=}')
 
         if response.shape[1] < self.config.response_length:
             response = pad_sequence_to_length(response, self.config.response_length, self.pad_token_id)
@@ -215,4 +217,7 @@ class vLLMRollout(BaseRollout):
         if self.config.free_cache_engine:
             self.inference_engine.free_cache_engine()
 
-        return DataProto(batch=batch)
+        return DataProto(
+            batch=batch,
+            meta_info={'gen_num_tokens': torch.sum(response != self.pad_token_id).item()},
+        )
