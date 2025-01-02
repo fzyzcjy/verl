@@ -438,7 +438,7 @@ class RayPPOTrainer(object):
                 gen_batch = batch.pop(batch_keys=['input_ids', 'attention_mask', 'position_ids'])
 
                 # generate a batch
-                with Timer(name='gen') as timer:
+                with Timer(name='gen', logger=None) as timer:
                     gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
                 metrics['timing/gen'] = timer.last
 
@@ -446,18 +446,18 @@ class RayPPOTrainer(object):
 
                 if self.use_reference_policy:
                     # compute reference log_prob
-                    with Timer(name='ref') as timer:
+                    with Timer(name='ref', logger=None) as timer:
                         ref_log_prob = self.ref_policy_wg.compute_ref_log_prob(batch)
                         batch = batch.union(ref_log_prob)
                     metrics['timing/ref'] = timer.last
 
                 # compute values
-                with Timer(name='values') as timer:
+                with Timer(name='values', logger=None) as timer:
                     values = self.critic_wg.compute_values(batch)
                     batch = batch.union(values)
                 metrics['timing/values'] = timer.last
 
-                with Timer(name='adv') as timer:
+                with Timer(name='adv', logger=None) as timer:
                     # compute scores. Support both model and function-based.
                     # We first compute the scores using reward model. Then, we call reward_fn to combine
                     # the results from reward model and rule-based results.
@@ -485,7 +485,7 @@ class RayPPOTrainer(object):
 
                 # update critic
                 if self.use_critic:
-                    with Timer(name='update_critic') as timer:
+                    with Timer(name='update_critic', logger=None) as timer:
                         critic_output = self.critic_wg.update_critic(batch)
                     metrics['timing/update_critic'] = timer.last
                     critic_output_metrics = reduce_metrics(critic_output.meta_info['metrics'])
@@ -494,7 +494,7 @@ class RayPPOTrainer(object):
                 # implement critic warmup
                 if self.config.trainer.critic_warmup <= global_steps:
                     # update actor
-                    with Timer(name='update_actor') as timer:
+                    with Timer(name='update_actor', logger=None) as timer:
                         actor_output = self.actor_rollout_wg.update_actor(batch)
                     metrics['timing/update_actor'] = timer.last
                     actor_output_metrics = reduce_metrics(actor_output.meta_info['metrics'])
@@ -502,7 +502,7 @@ class RayPPOTrainer(object):
 
                 # validate
                 if self.val_reward_fn is not None and (global_steps + 1) % self.config.trainer.test_freq == 0:
-                    with Timer(name='testing') as timer:
+                    with Timer(name='testing', logger=None) as timer:
                         val_metrics: dict = self._validate()
                         val_metrics = {f'val/{key}': val for key, val in val_metrics.items()}
                     metrics['timing/testing'] = timer.last
