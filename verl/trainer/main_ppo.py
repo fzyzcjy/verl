@@ -15,6 +15,8 @@
 Note that we don't combine the main with ray_trainer as ray_trainer is used by other main.
 """
 
+import logging
+import sys
 from verl import DataProto
 import torch
 from verl.utils.reward_score import gsm8k, math
@@ -109,6 +111,13 @@ def main_task(config):
     from omegaconf import OmegaConf
     pprint(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
     OmegaConf.resolve(config)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        stream=sys.stdout,
+        format='[%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s] %(message)s',
+        datefmt='%H:%M:%S',
+    )
 
     # download the checkpoint from hdfs
     local_path = copy_local_path_from_hdfs(config.actor_rollout_ref.model.path)

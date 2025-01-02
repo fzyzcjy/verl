@@ -15,7 +15,7 @@
 FSDP PPO Trainer with Ray-based single controller.
 This trainer supports model-agonistic model initialization with huggingface
 """
-
+import logging
 import os
 from dataclasses import dataclass, field
 from enum import Enum
@@ -438,25 +438,32 @@ class RayPPOTrainer(object):
                 gen_batch = batch.pop(batch_keys=['input_ids', 'attention_mask', 'position_ids'])
 
                 # generate a batch
+                logging.warning('hi gen start')
                 with Timer(name='gen', logger=None) as timer:
                     gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
                 metrics['timing/gen'] = timer.last
+                logging.warning('hi gen end')
 
                 batch = batch.union(gen_batch_output)
 
                 if self.use_reference_policy:
                     # compute reference log_prob
+                    logging.warning('hi ref start')
                     with Timer(name='ref', logger=None) as timer:
                         ref_log_prob = self.ref_policy_wg.compute_ref_log_prob(batch)
                         batch = batch.union(ref_log_prob)
                     metrics['timing/ref'] = timer.last
+                    logging.warning('hi ref end')
 
                 # compute values
+                logging.warning('hi values start')
                 with Timer(name='values', logger=None) as timer:
                     values = self.critic_wg.compute_values(batch)
                     batch = batch.union(values)
                 metrics['timing/values'] = timer.last
+                logging.warning('hi values end')
 
+                logging.warning('hi adv start')
                 with Timer(name='adv', logger=None) as timer:
                     # compute scores. Support both model and function-based.
                     # We first compute the scores using reward model. Then, we call reward_fn to combine
@@ -482,21 +489,26 @@ class RayPPOTrainer(object):
                                               self.config.algorithm.lam,
                                               adv_estimator=self.config.algorithm.adv_estimator)
                 metrics['timing/adv'] = timer.last
+                logging.warning('hi adv end')
 
                 # update critic
                 if self.use_critic:
+                    logging.warning('hi critic start')
                     with Timer(name='update_critic', logger=None) as timer:
                         critic_output = self.critic_wg.update_critic(batch)
                     metrics['timing/update_critic'] = timer.last
+                    logging.warning('hi critic end')
                     critic_output_metrics = reduce_metrics(critic_output.meta_info['metrics'])
                     metrics.update(critic_output_metrics)
 
                 # implement critic warmup
                 if self.config.trainer.critic_warmup <= global_steps:
                     # update actor
+                    logging.warning('hi actor start')
                     with Timer(name='update_actor', logger=None) as timer:
                         actor_output = self.actor_rollout_wg.update_actor(batch)
                     metrics['timing/update_actor'] = timer.last
+                    logging.warning('hi actor end')
                     actor_output_metrics = reduce_metrics(actor_output.meta_info['metrics'])
                     metrics.update(actor_output_metrics)
 
