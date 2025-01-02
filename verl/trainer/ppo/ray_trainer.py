@@ -441,7 +441,7 @@ class RayPPOTrainer(object):
                 logging.warning('hi gen start')
                 with Timer(name='gen', logger=None) as timer:
                     gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
-                    print(f'{gen_batch_output=}')
+                    print(f'{gen_batch_output.debug_info()=}')
                 metrics['timing/gen'] = timer.last
                 logging.warning('hi gen end')
 
@@ -452,6 +452,7 @@ class RayPPOTrainer(object):
                     logging.warning('hi ref start')
                     with Timer(name='ref', logger=None) as timer:
                         ref_log_prob = self.ref_policy_wg.compute_ref_log_prob(batch)
+                        print(f'{ref_log_prob.debug_info()=}')
                         batch = batch.union(ref_log_prob)
                     metrics['timing/ref'] = timer.last
                     logging.warning('hi ref end')
@@ -460,6 +461,7 @@ class RayPPOTrainer(object):
                 logging.warning('hi values start')
                 with Timer(name='values', logger=None) as timer:
                     values = self.critic_wg.compute_values(batch)
+                    print(f'{values.debug_info()=}')
                     batch = batch.union(values)
                 metrics['timing/values'] = timer.last
                 logging.warning('hi values end')
@@ -497,6 +499,7 @@ class RayPPOTrainer(object):
                     logging.warning('hi critic start')
                     with Timer(name='update_critic', logger=None) as timer:
                         critic_output = self.critic_wg.update_critic(batch)
+                        print(f'{critic_output.debug_info()=}')
                     metrics['timing/update_critic'] = timer.last
                     logging.warning('hi critic end')
                     critic_output_metrics = reduce_metrics(critic_output.meta_info['metrics'])
@@ -508,6 +511,7 @@ class RayPPOTrainer(object):
                     logging.warning('hi actor start')
                     with Timer(name='update_actor', logger=None) as timer:
                         actor_output = self.actor_rollout_wg.update_actor(batch)
+                        print(f'{actor_output.debug_info()=}')
                     metrics['timing/update_actor'] = timer.last
                     logging.warning('hi actor end')
                     actor_output_metrics = reduce_metrics(actor_output.meta_info['metrics'])
