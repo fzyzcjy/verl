@@ -269,7 +269,9 @@ class ActorRolloutRefWorker(Worker):
                 trust_remote_code=self.config.model.get('trust_remote_code', False))
 
             # get the original unwrapped module
-            self.actor_module = self.actor_module_fsdp._fsdp_wrapped_module
+            print('HACK!!! self.actor_module')
+            # self.actor_module = self.actor_module_fsdp._fsdp_wrapped_module
+            self.actor_module = self.actor_module_fsdp
 
             if self._is_offload_param:
                 # param is require during state_dict in sharding manager
