@@ -22,14 +22,13 @@ from enum import Enum
 from pprint import pprint
 from typing import Callable, Type, Tuple, Union
 
-from omegaconf import OmegaConf, open_dict
 import numpy as np
 from codetiming import Timer
-
+from omegaconf import OmegaConf, open_dict
+from verl import DataProto
 from verl.single_controller.base import Worker
 from verl.single_controller.ray import RayResourcePool, RayWorkerGroup, RayClassWithInitArgs
 from verl.single_controller.ray.base import create_colocated_worker_cls
-from verl import DataProto
 from verl.trainer.ppo import core_algos
 
 WorkerType = Type[Worker]
@@ -461,6 +460,7 @@ class RayPPOTrainer(object):
                 logging.warning('hi values start')
                 with Timer(name='values', logger=None) as timer:
                     values = self.critic_wg.compute_values(batch)
+                    print(f'{batch.debug_info()=}')
                     print(f'{values.debug_info()=}')
                     batch = batch.union(values)
                 metrics['timing/values'] = timer.last
