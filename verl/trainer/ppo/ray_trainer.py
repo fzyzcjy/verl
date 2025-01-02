@@ -441,6 +441,7 @@ class RayPPOTrainer(object):
                 logging.warning('hi gen start')
                 with Timer(name='gen', logger=None) as timer:
                     gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+                    print(f'{gen_batch_output=}')
                 metrics['timing/gen'] = timer.last
                 logging.warning('hi gen end')
 

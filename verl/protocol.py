@@ -16,16 +16,15 @@ Implement base data transfer protocol between any two functions, modules.
 We can subclass Protocol to define more detailed batch info with specific keys
 """
 
-import numpy as np
 import copy
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Union
 
-import torch
+import numpy as np
 import tensordict
+import torch
 from tensordict import TensorDict
-from torch.utils.data import DataLoader, Dataset
-
+from torch.utils.data import DataLoader
 from verl.utils.py_functional import union_two_dict
 
 __all__ = ['DataProto', 'union_tensor_dict']
@@ -155,7 +154,7 @@ class DataProto:
                     val, np.ndarray
                 ) and val.dtype == object, 'data in the non_tensor_batch must be a numpy.array with dtype=object'
                 assert val.shape[
-                    0] == batch_size, f'key {key} length {len(val)} is not equal to batch size {batch_size}'
+                           0] == batch_size, f'key {key} length {len(val)} is not equal to batch size {batch_size}'
 
     @classmethod
     def from_single_dict(cls, data: Dict[str, Union[torch.Tensor, np.ndarray]], meta_info=None):
@@ -435,6 +434,15 @@ class DataProto:
         indices_np = indices.detach().numpy()
         self.batch = self.batch[indices]
         self.non_tensor_batch = {key: val[indices_np] for key, val in self.non_tensor_batch.items()}
+
+    def debug_info(self):
+        return (
+            f'DataProto('
+            f'batch={ {k: v.shape for k, v in self.batch.items()} }, '
+            f'non_tensor_batch.keys={list(self.non_tensor_batch.keys())}, '
+            f'meta_info={self.meta_info}'
+            f')'
+        )
 
 
 import ray
