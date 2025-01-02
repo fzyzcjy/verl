@@ -189,6 +189,9 @@ class ActorRolloutRefWorker(Worker):
             sync_module_states=True,
             device_mesh=self.device_mesh)
 
+        print('HACK!!! torch.compile')
+        actor_module_fsdp = torch.compile(actor_module_fsdp)
+
         log_gpu_memory_usage('After Actor FSDP init', logger=logger)
 
         # TODO: add more optimizer args into config
@@ -529,6 +532,9 @@ class CriticWorker(Worker):
                              mixed_precision=mixed_precision,
                              sync_module_states=True)
 
+        print('HACK!!! torch.compile')
+        critic_module = torch.compile(critic_module)
+
         log_gpu_memory_usage('After critic FSDP', logger=None)
 
         critic_optimizer = optim.AdamW(critic_module.parameters(),
@@ -692,6 +698,9 @@ class RewardModelWorker(Worker):
             sharding_strategy=ShardingStrategy.FULL_SHARD,  # zero3
             sync_module_states=True,
             cpu_offload=CPUOffload(offload_params=self.config.model.fsdp_config.param_offload))
+
+        print('HACK!!! torch.compile')
+        reward_module = torch.compile(reward_module)
 
         return reward_module
 
