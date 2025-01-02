@@ -190,6 +190,7 @@ class ActorRolloutRefWorker(Worker):
         #     device_mesh=self.device_mesh)
         print('HACK!!! actor_module disable fsdp')
         actor_module_fsdp = actor_module
+        actor_module_fsdp.to('cuda')
 
         log_gpu_memory_usage('After Actor FSDP init', logger=logger)
 
@@ -524,6 +525,7 @@ class CriticWorker(Worker):
         log_gpu_memory_usage('Before critic FSDP', logger=None)
 
         print('HACK!!! critic_module disable fsdp')
+        critic_module.to('cuda')
         # critic_module = FSDP(critic_module,
         #                      param_init_fn=init_fn,
         #                      use_orig_params=False,
@@ -687,6 +689,7 @@ class RewardModelWorker(Worker):
         auto_wrap_policy = get_fsdp_wrap_policy(module=reward_module, config=self.config.model.fsdp_config)
 
         print('HACK!!! reward_module disable fsdp')
+        reward_module.to('cuda')
         # reward_module = FSDP(
         #     reward_module,
         #     param_init_fn=init_fn,
