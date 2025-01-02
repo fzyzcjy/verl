@@ -15,26 +15,26 @@
 The main entry point to run the PPO algorithm
 """
 
-import os
 import logging
+import os
 import warnings
-import ray
+
 import torch
 import torch.distributed
-from omegaconf import DictConfig, open_dict
-
+import verl.utils.hdfs_io as hdfs_io
+import verl.utils.torch_functional as verl_F
+from omegaconf import DictConfig
+from verl import DataProto
 from verl.single_controller.base import Worker
 from verl.single_controller.base.decorator import register, Dispatch
-import verl.utils.torch_functional as verl_F
-from verl import DataProto
-from verl.utils.model import compute_position_id_with_mask
-from verl.utils.fs import copy_local_path_from_hdfs
-from verl.utils.fsdp_utils import get_fsdp_wrap_policy, load_fsdp_grad, offload_fsdp_grad, init_fn, get_init_weight_context_manager
-from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and_grad, load_fsdp_optimizer, load_fsdp_param_and_grad
-from verl.utils.import_utils import import_external_libs
-from verl.utils.debug import log_gpu_memory_usage
-import verl.utils.hdfs_io as hdfs_io
 from verl.utils import hf_tokenizer
+from verl.utils.debug import log_gpu_memory_usage
+from verl.utils.fs import copy_local_path_from_hdfs
+from verl.utils.fsdp_utils import get_fsdp_wrap_policy, offload_fsdp_grad, get_init_weight_context_manager
+from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and_grad, load_fsdp_optimizer, \
+    load_fsdp_param_and_grad
+from verl.utils.import_utils import import_external_libs
+from verl.utils.model import compute_position_id_with_mask
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv('VERL_PPO_LOGGING_LEVEL', 'WARN'))
@@ -95,9 +95,8 @@ class ActorRolloutRefWorker(Worker):
                                trust_remote_code=False):
         from verl.utils.model import print_model_size, update_model_config
         from verl.utils.torch_dtypes import PrecisionType
-        from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, MixedPrecision, \
-            CPUOffload
+        from transformers import AutoModelForCausalLM, AutoConfig
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, MixedPrecision
         from torch import optim
 
         log_gpu_memory_usage('Before init from HF AutoModel', logger=logger)
@@ -455,15 +454,13 @@ class CriticWorker(Worker):
         # the following line is necessary
         from verl.utils.model import LambdaLayer, print_model_size, squeeze
         from verl.utils.torch_dtypes import PrecisionType
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, MixedPrecision, \
-            CPUOffload
+        from torch.distributed.fsdp import MixedPrecision
         from torch import optim
 
         local_path = copy_local_path_from_hdfs(config.model.path)
         # note that the tokenizer between actor and critic may be different. So override tokenizer info with actor info
         # using random initialized model from any architecture. May not be the same as Actor.
         # TODO: support loading critic weights from RM. Support using AutoModelForTokenClassification
-        from transformers import AutoTokenizer
 
         tokenizer_path = copy_local_path_from_hdfs(config.model.tokenizer_path)
         self.tokenizer = hf_tokenizer(tokenizer_path, trust_remote_code=config.model.get('trust_remote_code', False))
@@ -659,8 +656,7 @@ class RewardModelWorker(Worker):
 
     def _build_model(self, config):
         # the following line is necessary
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer, AutoConfig
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, ShardingStrategy, CPUOffload
+        from transformers import AutoModelForSequenceClassification, AutoConfig
 
         # download the checkpoint from hdfs
         local_path = copy_local_path_from_hdfs(config.model.path)
