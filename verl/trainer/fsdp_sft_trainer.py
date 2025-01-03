@@ -29,7 +29,7 @@ import torch
 import torch.distributed
 from torch import nn, optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision, ShardingStrategy, CPUOffload
-from transformers import AutoTokenizer, AutoModelForCausalLM, PreTrainedModel, AutoConfig
+from transformers import AutoModelForCausalLM, PreTrainedModel, AutoConfig
 from verl.utils.torch_functional import get_cosine_schedule_with_warmup
 from tensordict import TensorDict
 from torch.utils.data import DataLoader, DistributedSampler
@@ -68,7 +68,9 @@ class FSDPSFTTrainer(object):
             raise ValueError('Apply Chat template from config is not supported yet.')
 
         # normalize dp size
+        print(f'hi before _normalize_config_bsz {self.device_mesh.get_rank()} {self.config.data=}')
         self._normalize_config_bsz()
+        print(f'hi after _normalize_config_bsz {self.device_mesh.get_rank()} {self.config.data=}')
 
         self._build_dataloader()
         # build model
@@ -90,6 +92,7 @@ class FSDPSFTTrainer(object):
         self.config.data.micro_batch_size //= dp_size
 
     def _build_dataloader(self):
+        print(f'hi _build_dataloader {self.device_mesh.get_rank()} {self.config.data=}')
         config = self.config
         # build dataset
         self.train_dataset = SFTDataset(parquet_files=config.data.train_files,
@@ -304,6 +307,7 @@ class FSDPSFTTrainer(object):
         torch.distributed.barrier()
 
     def fit(self):
+        print(f'hi fit {self.device_mesh.get_rank()} {self.config.data=}')
         rank = self.device_mesh.get_rank()
 
         # TODO: add a unified tracking
