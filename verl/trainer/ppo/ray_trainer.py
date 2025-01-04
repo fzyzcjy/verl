@@ -219,7 +219,8 @@ def compute_timing_metrics(batch, timing_raw):
             f'timing/{name}': value for name, value in timing_raw.items()
         },
         **{
-            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in set(num_tokens_of_section.keys(
+            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in
+            set(num_tokens_of_section.keys(
             )) & set(timing_raw.keys())
         },
     }
@@ -310,7 +311,8 @@ class RayPPOTrainer(object):
         self.val_dataloader = DataLoader(dataset=self.val_dataset,
                                          batch_size=self.config.data.val_batch_size,
                                          shuffle=True,
-                                         drop_last=True,
+                                         # NOTE MODIFIED
+                                         # drop_last=True,
                                          collate_fn=collate_fn)
 
         assert len(self.train_dataloader) >= 1
