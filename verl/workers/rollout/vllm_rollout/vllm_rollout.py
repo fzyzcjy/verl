@@ -39,6 +39,7 @@ from verl.utils.torch_functional import get_eos_mask, pad_sequence_to_length
 from verl.workers.rollout.base import BaseRollout
 from vllm import SamplingParams
 
+
 # TODO
 # 1. support pp in vllm
 # 2. passing tokenizer is not necessary? no encoding/decoding is happending here
@@ -97,7 +98,12 @@ class vLLMRollout(BaseRollout):
                                     gpu_memory_utilization=config.gpu_memory_utilization,
                                     skip_tokenizer_init=False,
                                     max_model_len=config.prompt_length + config.response_length,
-                                    load_format=config.load_format)
+                                    load_format=config.load_format,
+                                    # TODO
+                                    # TODO HACK!!!
+                                    # TODO
+                                    disable_custom_all_reduce=True,
+                                    )
 
         # Offload vllm model to reduce peak memory usage
         self.inference_engine.offload_model_weights()
