@@ -219,8 +219,7 @@ def compute_timing_metrics(batch, timing_raw):
             f'timing/{name}': value for name, value in timing_raw.items()
         },
         **{
-            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in
-            set(num_tokens_of_section.keys(
+            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in set(num_tokens_of_section.keys(
             )) & set(timing_raw.keys())
         },
     }
@@ -333,7 +332,6 @@ class RayPPOTrainer(object):
         data_source_lst = []
         for test_data in self.val_dataloader:
             test_batch = DataProto.from_single_dict(test_data)
-            print(f'hi validate test_batch.batch={ {k: v.shape for k, v in test_batch.batch.items()} }')
             # test_batch = test_batch.to('cuda')
 
             # we only do validation on rule-based rm
