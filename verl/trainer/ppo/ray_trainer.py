@@ -319,8 +319,10 @@ class RayPPOTrainer(object):
         print(f'Size of train dataloader: {len(self.train_dataloader)}')
         print(f'Size of val dataloader: {len(self.val_dataloader)}')
 
+        dp_size = self.config.rollout.tensor_model_parallel_size
         assert self.val_dataloader.batch_size % dp_size == 0
-        assert len(self.val_dataset) - len(self.val_dataloader) * self.val_dataloader.batch_size < dp_size
+        assert len(self.val_dataset) - len(self.val_dataloader) * self.val_dataloader.batch_size < dp_size, \
+            f'Waste too many val rows'
 
         # inject total_training_steps to actor/critic optim_config. This is hacky.
         total_training_steps = len(self.train_dataloader) * self.config.trainer.total_epochs
