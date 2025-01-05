@@ -219,7 +219,8 @@ def compute_timing_metrics(batch, timing_raw):
             f'timing/{name}': value for name, value in timing_raw.items()
         },
         **{
-            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in set(num_tokens_of_section.keys(
+            f'timing_per_token/{name}': timing_raw[name] / num_tokens_of_section[name] for name in
+            set(num_tokens_of_section.keys(
             )) & set(timing_raw.keys())
         },
     }
@@ -285,7 +286,6 @@ class RayPPOTrainer(object):
 
     def _create_dataloader(self):
         from torch.utils.data import DataLoader
-        # TODO: we have to make sure the batch size is divisible by the dp size
         from verl.utils.dataset.rl_dataset import RLHFDataset, collate_fn
         self.train_dataset = RLHFDataset(parquet_files=self.config.data.train_files,
                                          tokenizer=self.tokenizer,
@@ -318,6 +318,9 @@ class RayPPOTrainer(object):
 
         print(f'Size of train dataloader: {len(self.train_dataloader)}')
         print(f'Size of val dataloader: {len(self.val_dataloader)}')
+
+        assert self.val_dataloader.batch_size % dp_size == 0
+        assert len(self.val_dataset) - len(self.val_dataloader) * self.val_dataloader.batch_size < dp_size
 
         # inject total_training_steps to actor/critic optim_config. This is hacky.
         total_training_steps = len(self.train_dataloader) * self.config.trainer.total_epochs
